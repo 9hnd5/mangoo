@@ -1,0 +1,11 @@
+.editor {
+  [class~='ql-toolbar'] {
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+  }
+  [class~='ql-container'] {
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+    font-size: 14px;
+  }
+}
