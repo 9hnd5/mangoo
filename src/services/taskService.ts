@@ -25,6 +25,7 @@ export interface Task {
   parentId: number | null;
   description: string | null;
   isPublic: boolean;
+  isComplete: boolean;
 }
 
 interface PostTask {
@@ -48,6 +49,7 @@ interface PutTask {
 interface PatchTask {
   id: number;
   name?: string;
+  isComplete?: boolean;
 }
 
 interface GetTasksQuery {
@@ -101,6 +103,11 @@ export const taskService = baseService.injectEndpoints({
         };
       },
       async onQueryStarted(data, { dispatch, queryFulfilled }) {
+        dispatch(
+          taskService.util.updateQueryData('getTasks', {}, (draftTasks) => {
+            console.log('d', draftTasks.length);
+          }),
+        );
         try {
           await queryFulfilled;
         } catch (err) {
@@ -108,6 +115,32 @@ export const taskService = baseService.injectEndpoints({
         }
       },
       invalidatesTags: ['TASKS'],
+    }),
+    completeTask: builder.mutation<void, { task: Task; isComplete: boolean }>({
+      query: ({ isComplete, task }) => {
+        return {
+          url: `tasks/${task.id}`,
+          method: 'PATCH',
+          body: { isComplete },
+        };
+      },
+      async onQueryStarted(data, { dispatch, queryFulfilled }) {
+        const { task, isComplete } = data;
+        dispatch(
+          taskService.util.updateQueryData('getTasks', { sectionId: task.section.id }, (draftTasks) => {
+            const index = draftTasks.findIndex((x) => x.id === task.id);
+            if (index >= 0) {
+              draftTasks[index].isComplete = isComplete;
+              return draftTasks;
+            }
+          }),
+        );
+        try {
+          await queryFulfilled;
+        } catch (err) {
+          notification.error({ message: JSON.stringify(err) });
+        }
+      },
     }),
     deleteTask: builder.mutation<void, Task>({
       query: (task) => {
@@ -152,5 +185,6 @@ export const {
   useCreateTaskMutation,
   useUpdateTaskMutation,
   useDeleteTaskMutation,
+  useCompleteTaskMutation,
   useUpdateTaskPartialMutation,
 } = taskService;

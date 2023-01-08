@@ -28,6 +28,7 @@ export type TaskFormType = {
 };
 export const TaskForm = (props: Props) => {
   const { form, onNameChange } = props;
+  const { errors } = form.formState;
   const { control, setValue } = form;
   const [editName, setEditName] = React.useState(false);
   const [priority, progress] = useWatch({ control, name: ['priority', 'progress'] });
@@ -41,8 +42,14 @@ export const TaskForm = (props: Props) => {
 
   return (
     <Form layout="horizontal" labelCol={{ xs: 5 }} wrapperCol={{ xs: 15 }} labelAlign="left">
-      <Form.Item name="name" style={{ marginLeft: -14 }} wrapperCol={{ xs: 24 }}>
-        {editName ? (
+      <Form.Item
+        name="name"
+        help={errors.name?.message}
+        validateStatus={errors.name && 'error'}
+        style={{ marginLeft: -14 }}
+        wrapperCol={{ xs: 24 }}
+      >
+        {editName || errors.name ? (
           <TInput.TTextArea
             name="name"
             control={control}

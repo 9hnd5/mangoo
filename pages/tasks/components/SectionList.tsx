@@ -13,14 +13,16 @@ import {
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { Col, Row } from 'antd';
 import SectionItem from 'pages/tasks/components/SectionItem';
-import TaskItem from 'pages/tasks/components/TaskItem';
+import { selectTask } from 'pages/tasks/index.slice';
 import React from 'react';
+import { TaskItem } from 'src/components/TaskItem';
 import { useAppDispatch } from 'src/hooks/redux';
-import { useGetSectionsQuery } from 'src/services/sectionService';
+import { getSections, useGetSectionsQuery } from 'src/services/sectionService';
 import { Task, taskService, useSortTaskMutation } from 'src/services/taskService';
+import { wrapper } from 'store';
 
-export default function SectionList() {
-  const { data = [] } = useGetSectionsQuery();
+export const SectionList = () => {
+  const { data: sections = [] } = useGetSectionsQuery();
   const [activeTask, setActiveTask] = React.useState<Task | undefined>(undefined);
   const [sortTask] = useSortTaskMutation();
   const dispatch = useAppDispatch();
@@ -92,14 +94,39 @@ export default function SectionList() {
       collisionDetection={pointerWithin}
     >
       <Row gutter={8} wrap={false}>
-        {data.map((item) => (
+        {sections.map((item) => (
           <Col key={item.id} span={6}>
             <SectionItem section={item} />
           </Col>
         ))}
       </Row>
-      <DragOverlay>{activeTask ? <TaskItem data={activeTask} /> : null}</DragOverlay>
+      <DragOverlay>{activeTask ? <TaskItem task={activeTask} type="view" drag={true} /> : null}</DragOverlay>
     </DndContext>
   );
   return renderData;
-}
+};
+
+export const getServerSideProps = wrapper.getServerSideProps((store) => async (context) => {
+  console.log('aaa');
+  store.dispatch(getSections.initiate());
+
+  Promise.all(store.dispatch(taskService.util.getRunningQueriesThunk()));
+
+  store.dispatch(
+    selectTask({
+      name: 'Mission to the moon',
+      id: 191,
+      startDate: null,
+      endDate: null,
+      priority: null,
+      progress: null,
+      description: null,
+      parentId: null,
+      isComplete: false,
+    } as any),
+  );
+
+  return {
+    props: {},
+  };
+});

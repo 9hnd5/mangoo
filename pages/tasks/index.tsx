@@ -1,8 +1,9 @@
 import { Avatar, Tabs, Typography } from 'antd';
-import SectionList from 'pages/tasks/components/SectionList';
+import { getServerSideProps, SectionList } from 'pages/tasks/components/SectionList';
 import { TaskInfo } from 'pages/tasks/components/TaskInfo';
 import React from 'react';
 import { useAppSelector } from 'src/hooks/redux';
+import { wrapper } from 'store';
 import style from './index.module.scss';
 const { Title } = Typography;
 
@@ -49,4 +50,5 @@ const Index = () => {
     </div>
   );
 };
+
 export default Index;

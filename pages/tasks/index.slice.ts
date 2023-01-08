@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { HYDRATE } from 'next-redux-wrapper';
 import { Task } from 'src/services/taskService';
 
 type TaskSelected = Task;
@@ -14,6 +15,24 @@ const taskSlice = createSlice({
       state.taskSelected = payload;
     },
   },
+  extraReducers: (builder) => {
+    builder.addCase(HYDRATE, (state, action) => {
+      console.log('HYDRATE', state, action);
+      return {
+        ...state,
+        ...action,
+      };
+    });
+  },
+  // extraReducers: {
+  //   [HYDRATE]: (state, action) => {
+  //     console.log('HYDRATE', state, action.payload);
+  //     return {
+  //       ...state,
+  //       ...action.payload,
+  //     };
+  //   },
+  // },
 });
 
 export const { selectTask } = taskSlice.actions;

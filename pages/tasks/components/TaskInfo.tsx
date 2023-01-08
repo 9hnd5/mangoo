@@ -1,3 +1,4 @@
+import { CheckOutlined, PlusOutlined } from '@ant-design/icons';
 import { Breadcrumb as AntBreadcrumb, Button, Drawer, Space, Typography } from 'antd';
 import dayjs from 'dayjs';
 import { selectTask } from 'pages/tasks/index.slice';
@@ -5,10 +6,13 @@ import React, { useContext } from 'react';
 import { useForm, UseFormReturn } from 'react-hook-form';
 import { SubTaskItem } from 'src/components/SubTaskItem';
 import { TaskForm, TaskFormType } from 'src/components/TaskForm';
+import { yupResolver } from '@hookform/resolvers/yup';
 import { useAppDispatch } from 'src/hooks/redux';
+import * as yup from 'yup';
 import {
   Task,
   taskService,
+  useCompleteTaskMutation,
   useCreateTaskMutation,
   useDeleteTaskMutation,
   useGetTasksQuery,
@@ -27,7 +31,9 @@ interface TaskInfoContext {
   parentTasks: Task[];
   setParentTasks: (data: Task[]) => void;
 }
-
+const schema = yup.object({
+  name: yup.string().required('Name is required'),
+});
 const Context = React.createContext<TaskInfoContext>({} as any);
 const defaultValues = {
   assigneeId: null,
@@ -41,6 +47,7 @@ const defaultValues = {
 const TaskInfo = (props: Props) => {
   const dispatch = useAppDispatch();
   const [updateTask] = useUpdateTaskMutation();
+  const [completeTask] = useCompleteTaskMutation();
   const { task, children } = props;
   const open = task ? true : false;
   const formValue = React.useMemo(() => {
@@ -57,37 +64,63 @@ const TaskInfo = (props: Props) => {
           : null,
     };
   }, [task]);
-  const form = useForm<TaskFormType>({ defaultValues, ...(formValue && { values: formValue }) });
+  const form = useForm<TaskFormType>({
+    defaultValues,
+    resolver: yupResolver(schema),
+    ...(formValue && { values: formValue }),
+  });
   const [parentTasks, setParentTasks] = React.useState<Task[]>([]);
 
-  const handleClose = () => {
-    const { id, name, sectionId, assigneeId, projectId, dueDate, description, parentId, priority, progress } =
-      form.getValues();
-    let startDate = null,
-      endDate = null;
-    if (dueDate) {
-      startDate = dueDate[0].format('YYYY-MM-DD');
-      endDate = dueDate[1].format('YYYY-MM-DD');
+  const drawerTitle = () => {
+    if (task && task.isComplete) {
+      return (
+        <Button icon={<CheckOutlined />} type="primary" onClick={() => handleComplete(false)}>
+          Completed
+        </Button>
+      );
     }
-    updateTask({
-      id,
-      name,
-      sectionId,
-      assigneeId,
-      projectId,
-      parentId,
-      progress,
-      priority,
-      startDate,
-      endDate,
-      description,
-    });
-    dispatch(selectTask(null));
-    setParentTasks([]);
+
+    if (task && !task.isComplete) {
+      return <Button onClick={() => handleComplete(true)}>Mark Complete</Button>;
+    }
+  };
+
+  const handleClose = async () => {
+    form.handleSubmit((data) => {
+      const { id, name, sectionId, assigneeId, projectId, dueDate, description, parentId, priority, progress } = data;
+      let startDate = null,
+        endDate = null;
+      if (dueDate) {
+        startDate = dueDate[0].format('YYYY-MM-DD');
+        endDate = dueDate[1].format('YYYY-MM-DD');
+      }
+      updateTask({
+        id,
+        name,
+        sectionId,
+        assigneeId,
+        projectId,
+        parentId,
+        progress,
+        priority,
+        startDate,
+        endDate,
+        description,
+      });
+      dispatch(selectTask(null));
+      setParentTasks([]);
+    })();
+  };
+
+  const handleComplete = (isComplete: boolean) => {
+    if (task) {
+      completeTask({ task, isComplete });
+      dispatch(selectTask({ ...task, isComplete }));
+    }
   };
 
   return task ? (
-    <Drawer open={open} onClose={handleClose} width={500}>
+    <Drawer open={open} onClose={handleClose} width={500} title={drawerTitle()}>
       <Context.Provider value={{ task, form, parentTasks, setParentTasks }}>{children}</Context.Provider>
     </Drawer>
   ) : (
@@ -169,7 +202,9 @@ const SubTaskList = () => {
 
   return (
     <Space direction="vertical" style={{ width: '100%' }}>
-      <Button onClick={handleSubTaskCreate}>Add Subtask</Button>
+      <Button icon={<PlusOutlined />} onClick={handleSubTaskCreate}>
+        Add Subtask
+      </Button>
       <Space size={4} direction="vertical" style={{ width: '100%' }}>
         {data.map((item) => (
           <SubTaskItem
@@ -199,7 +234,7 @@ const Breadcrumb = () => {
   };
 
   return (
-    <AntBreadcrumb>
+    <AntBreadcrumb style={{ marginBottom: 8 }}>
       {parentTasks.map((item) => (
         <AntBreadcrumb.Item onClick={() => handleClick(item)} key={item.id}>
           <Typography.Link> {item.name}</Typography.Link>
